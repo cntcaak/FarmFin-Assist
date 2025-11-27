@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmFin Loan Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        
+        /* Back Button Style */
+        .back-link {
+            text-decoration: none; 
+            color: #2E7D32; 
+            font-weight: bold; 
+            display: inline-block;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .calculator-card {
+            background: white;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+
+        .input-section { flex: 1; min-width: 300px; }
+        .result-section { flex: 1; min-width: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        h2 { color: #2E7D32; margin-top: 0; border-bottom: 2px solid #A5D6A7; padding-bottom: 10px; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box; /* Fixes padding issues */
+        }
+
+        input:focus { border-color: #2E7D32; outline: none; }
+
+        /* Button Container */
+        .btn-container { display: flex; gap: 10px; margin-top: 20px; }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            color: white;
+            font-weight: bold;
+        }
+
+        .calc-btn { background-color: #2E7D32; }
+        .calc-btn:hover { background-color: #1B5E20; }
+
+        .reset-btn { background-color: #d32f2f; }
+        .reset-btn:hover { background-color: #b71c1c; }
+
+        .results {
+            width: 100%;
+            margin-top: 25px;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .emi-display {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2E7D32;
+            margin-bottom: 10px;
+        }
+
+        .sub-text { font-size: 14px; color: #666; margin: 4px 0; }
+        
+        .chart-container { position: relative; height: 250px; width: 250px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">← Back to Home</a>
+
+<div class="calculator-card">
+    <div class="input-section">
+        <h2>FarmFin Calculator</h2>
+        
+        <div class="form-group">
+            <label>Loan Amount (₹)</label>
+            <input type="number" id="loanAmount" placeholder="e.g. 100000">
+        </div>
+
+        <div class="form-group">
+            <label>Interest Rate (% per year)</label>
+            <input type="number" id="interestRate" placeholder="e.g. 7">
+        </div>
+
+        <div class="form-group">
+            <label>Loan Tenure (Years)</label>
+            <input type="number" id="loanTenure" placeholder="e.g. 1">
+        </div>
+
+        <div class="btn-container">
+            <button class="calc-btn" onclick="calculateEMI()">Calculate EMI</button>
+            <button class="reset-btn" onclick="resetData()">Reset Data</button>
+        </div>
+
+        <div class="results" id="resultText" style="display:none;">
+            <div class="emi-display">Monthly EMI: <span id="emiValue">₹0</span></div>
+            <div class="sub-text">Total Interest: <span id="totalInterest">₹0</span></div>
+            <div class="sub-text">Total Payment: <span id="totalPayment">₹0</span></div>
+        </div>
+    </div>
+
+    <div class="result-section">
+        <h3 id="chartTitle" style="display:none;">Interest vs Principal</h3>
+        <div class="chart-container" id="chartBox" style="display:none;">
+            <canvas id="loanChart"></canvas>
+        </div>
+        <div id="placeholder" style="text-align:center; color:#999;">
+            <p>Enter details to see graph</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let myChart = null;
+
+    function calculateEMI() {
+        let amount = document.getElementById('loanAmount').value;
+        let rate = document.getElementById('interestRate').value;
+        let years = document.getElementById('loanTenure').value;
+
+        if (!amount || !rate || !years) {
+            alert("Please fill all details correctly.");
+            return;
+        }
+
+        let principal = parseFloat(amount);
+        let monthlyRate = parseFloat(rate) / 12 / 100;
+        let months = parseFloat(years) * 12;
+
+        let emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+        if (!isFinite(emi)) emi = principal / months;
+
+        let totalPayable = emi * months;
+        let totalInterest = totalPayable - principal;
+
+        // Show Results
+        document.getElementById('resultText').style.display = 'block';
+        document.getElementById('chartTitle').style.display = 'block';
+        document.getElementById('chartBox').style.display = 'block';
+        document.getElementById('placeholder').style.display = 'none';
+
+        document.getElementById('emiValue').innerText = '₹' + emi.toFixed(0);
+        document.getElementById('totalInterest').innerText = '₹' + totalInterest.toFixed(0);
+        document.getElementById('totalPayment').innerText = '₹' + totalPayable.toFixed(0);
+
+        updateChart(principal, totalInterest);
+    }
+
+    function resetData() {
+        // 1. Clear Input Fields
+        document.getElementById('loanAmount').value = '';
+        document.getElementById('interestRate').value = '';
+        document.getElementById('loanTenure').value = '';
+
+        // 2. Hide Results & Charts
+        document.getElementById('resultText').style.display = 'none';
+        document.getElementById('chartTitle').style.display = 'none';
+        document.getElementById('chartBox').style.display = 'none';
+        document.getElementById('placeholder').style.display = 'block';
+
+        // 3. Destroy Chart if it exists
+        if (myChart) {
+            myChart.destroy();
+            myChart = null;
+        }
+    }
+
+    function updateChart(principal, interest) {
+        const ctx = document.getElementById('loanChart').getContext('2d');
+        if (myChart) myChart.destroy();
+
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Principal', 'Interest'],
+                datasets: [{
+                    data: [principal, interest],
+                    backgroundColor: ['#2E7D32', '#d32f2f'], // Green and Red
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
