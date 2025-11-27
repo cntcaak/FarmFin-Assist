@@ -14,6 +14,20 @@ st.set_page_config(
     page_icon="🌾",
     layout="wide"
 )
+# ==========================================
+# PWA INJECTION (Add to Home Screen)
+# ==========================================
+st.markdown(
+    """
+    <link rel="manifest" href="app/static/manifest.json">
+    <meta name="theme-color" content="#2e7d32">
+    <style>
+        /* Hide the Streamlit main menu for a cleaner "App" look */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+    </style>
+    """,
+    unsafe_allow_html=True)
 
 # Custom Styling
 st.markdown("""
@@ -166,27 +180,86 @@ def page_health():
 
 def page_schemes():
     st.header(t('nav_schemes'))
-    st.markdown(f"### {t('scheme_title')}")
-    st.markdown(t('scheme_1'))
-    st.markdown(t('scheme_2'))
-    st.markdown(t('scheme_3'))
+    st.markdown("### 🏛️ Official Government Portals")
+    
+    # Direct Links with descriptions
+    schemes = [
+        ("PM-KISAN (Income Support)", "https://pmkisan.gov.in", "₹6,000/year income support for farmers."),
+        ("PMFBY (Crop Insurance)", "https://pmfby.gov.in", "Apply for crop insurance and report losses."),
+        ("JanSamarth (Credit Portal)", "https://www.jansamarth.in", "13+ Government loan schemes in one platform."),
+        ("Agri Infra Fund (AIF)", "https://agriinfra.dac.gov.in", "Loans for warehouses, cold storage & post-harvest units."),
+        ("e-NAM (Market Place)", "https://enam.gov.in", "Sell your produce online at best mandi prices.")
+    ]
+
+    for name, link, desc in schemes:
+        with st.expander(f"🔗 {name}"):
+            st.write(desc)
+            st.markdown(f"[**Click to Visit Website**]({link})")
 
 def page_calculator():
     st.header(t('nav_calc'))
+
+    # --- TAB 1: CROP PROFIT (Your existing code) ---
+    st.subheader("1. Crop Profit Estimator")
     c1, c2 = st.columns(2)
     area = c1.number_input(t('calc_area'), 1.0)
     yield_val = c2.number_input(t('calc_yield'), 20.0)
     price = c1.number_input(t('calc_price'), 2000.0)
     cost = c2.number_input(t('calc_cost'), 15000.0)
     
-    if st.button(t('calc_run')):
+    if st.button(t('calc_run'), key="btn_profit"):
         profit = (area * yield_val * price) - (area * cost)
         st.metric(t('est_profit'), f"₹ {profit:,.2f}")
         if profit > 0: st.success(t('res_profit'))
         else: st.error(t('res_loss'))
+
+    st.markdown("---") # Divider line
+
+    # --- TAB 2: LOAN EMI CALCULATOR (The New Feature) ---
+    st.subheader("2. 🏦 Loan EMI Calculator")
+    
+    # Layout for inputs
+    l1, l2, l3 = st.columns(3)
+    loan_amt = l1.number_input("Loan Amount (₹)", min_value=0, value=100000, step=5000)
+    rate = l2.number_input("Interest Rate (%)", min_value=0.0, value=7.0, step=0.1)
+    years = l3.number_input("Tenure (Years)", min_value=1, value=1)
+
+    # Calculate Button
+    if st.button("Calculate EMI", key="btn_emi"):
+        # Mathematical Logic
+        monthly_rate = rate / 12 / 100
+        months = years * 12
         
-    st.markdown("---")
-    if st.button(t('reset_btn'), type="primary", key="reset_calc"):
+        # EMI Formula
+        if rate > 0:
+            emi = (loan_amt * monthly_rate * (1 + monthly_rate) ** months) / ((1 + monthly_rate) ** months - 1)
+        else:
+            emi = loan_amt / months # Edge case for 0% interest
+            
+        total_payment = emi * months
+        total_interest = total_payment - loan_amt
+
+        # Display Metrics
+        st.success(f"**Monthly EMI:** ₹{int(emi)}")
+        
+        res1, res2 = st.columns(2)
+        res1.write(f"**Total Interest:** ₹{int(total_interest)}")
+        res2.write(f"**Total Payable:** ₹{int(total_payment)}")
+
+        # Pie Chart Logic
+        fig, ax = plt.subplots(figsize=(4, 3))
+        # Colors: Green for Principal, Orange/Red for Interest
+        ax.pie([loan_amt, total_interest], labels=['Principal', 'Interest'], autopct='%1.1f%%', colors=['#2e7d32', '#ff9800'], startangle=90)
+        ax.axis('equal') # Equal aspect ratio ensures that pie is drawn as a circle.
+        
+        # Show Chart
+        
+        st.pyplot(fig)
+
+    # The Red Reset Button
+    st.write("") # Spacer
+    if st.button("🔄 Reset Loan Data", type="primary", key="reset_emi"):
+        # In Streamlit, rerun clears the temporary inputs
         st.rerun()
 
 def page_report():
