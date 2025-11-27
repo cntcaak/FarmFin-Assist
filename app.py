@@ -16,7 +16,6 @@ st.set_page_config(
 )
 
 # Custom CSS
-# This forces the "primary" button (which we use for RESET) to be RED.
 st.markdown("""
     <style>
     .main { background-color: #f0f8f5; }
@@ -51,7 +50,6 @@ st.markdown("""
 # ==========================================
 # 2. SESSION STATE
 # ==========================================
-# Default values function
 def get_defaults():
     return {
         'name': '', 'land': 0.0, 'crop': 'Wheat', 
@@ -67,16 +65,12 @@ if 'lang_code' not in st.session_state:
 def t(key):
     return get_text(st.session_state.lang_code, key)
 
-# Helper to calculate Season
 def get_current_season():
     month = datetime.datetime.now().month
-    # Rabi: Oct(10) to Mar(3)
     if month >= 10 or month <= 3:
         return "Rabi (Wheat/Mustard)"
-    # Zaid: Apr(4) to May(5)
     elif 4 <= month <= 5:
         return "Zaid (Vegetables)"
-    # Kharif: Jun(6) to Sep(9)
     else:
         return "Kharif (Rice/Maize)"
 
@@ -137,22 +131,27 @@ def calculate_metrics(income, expenses, monthly_emi):
 # 5. PAGES
 # ==========================================
 def page_home():
-    # Robust Image Loader (Checks for both file name variations)
+    # MINIMALIST IMAGE LAYOUT
+    # We use columns to center the image and restrict its width.
+    # [1, 2, 1] means: 25% empty | 50% Image | 25% empty
     img_files = ["farm_header.jpg", "farm_header.jpg.jpg", "farm_header.jpeg"]
     loaded = False
-    for img in img_files:
-        if os.path.exists(img):
-            st.image(img, use_container_width=True)
-            loaded = True
-            break
-    if not loaded:
-        st.warning("⚠️ Header image not found. Please ensure 'farm_header.jpg' is in the folder.")
+    
+    col_spacer_left, col_image, col_spacer_right = st.columns([1, 2, 1])
+
+    with col_image:
+        for img in img_files:
+            if os.path.exists(img):
+                st.image(img, use_container_width=True)
+                loaded = True
+                break
+        if not loaded:
+            st.warning("⚠️ Header image not found. Please ensure 'farm_header.jpg' is in the folder.")
 
     st.title(t('title'))
     st.subheader(t('subtitle'))
     st.info(t('intro'))
     
-    # Updated Metrics as requested
     col1, col2, col3 = st.columns(3)
     col1.metric("Supported Languages", "22")
     col2.metric(t('metric_interest'), "~7% (KCC)")
@@ -173,8 +172,6 @@ def page_profile():
             st.session_state.farmer_data.update({'name': name, 'land': land, 'district': district, 'crop': crop})
             st.success("✅ Saved!")
 
-    # Red Reset Button
-    st.markdown("---")
     if st.button(t('reset_btn'), type="primary", key="reset_profile"):
         st.session_state.farmer_data = get_defaults()
         st.rerun()
@@ -204,7 +201,6 @@ def page_health():
         ax.bar(['Income', 'Expenses'], [inc, exp], color=['#4CAF50', '#d32f2f'])
         st.pyplot(fig)
 
-    # Red Reset Button
     st.markdown("---")
     if st.button(t('reset_btn'), type="primary", key="reset_health"):
         st.session_state.farmer_data['income'] = 0
@@ -235,7 +231,6 @@ def page_calculator():
         if profit > 0: st.success("Profitable")
         else: st.error("Loss Making")
         
-    # Red Reset Button
     st.markdown("---")
     if st.button(t('reset_btn'), type="primary", key="reset_calc"):
         st.rerun()
